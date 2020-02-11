@@ -1,0 +1,68 @@
+import csv
+import logging
+from math import ceil
+import os
+
+from peewee import chunked
+from tqdm import tqdm
+import yaml
+
+from trendpulse_models import database, TrendpulseSummaryTsaV2 as tp
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.INFO)
+
+
+class DbLoader:
+    """
+    A simple class to extract and load data from a CSV file onto postgres DB.
+    """
+
+    def __init__(self):
+        script_dir = os.path.dirname(__file__)
+        rel_path = "../data/trendpulse_summary_tsa_v2.csv"
+        self.csv_file = os.path.join(script_dir, rel_path)
+
+    def _extract_data(self):
+        """
+        Extract all the data from CSV file.
+        """
+        data = []
+        logger.info(f"Extract start...")
+
+        with open(self.csv_file) as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter="\t")
+            columns = ["search", "search_volume", "weeks", "date_of_month", "period"]
+            with tqdm(desc="Extracting") as pbar:
+                for row in csv_reader:
+                    row = [r.replace("\\N", "") for r in row]
+                    extracted_row = {col:row[key] for key, col in enumerate(columns)}
+                    data.append(extracted_row)
+                    pbar.update()
+        logger.info("Extract completed")
+        return data
+
+    def load_data(self):
+        """
+        Load data into table if empty.
+        """
+        if len(tp):
+            logger.info("Data already exist")
+        else:
+            data = self._extract_data()
+            total = len(data)
+            chunk_size = 100000
+            total_batches = ceil(total / chunk_size)
+            logger.info("Load start...")
+            logger.info(f"Inserting rows into {tp._meta.table_name}")
+            with database.atomic(), tqdm(desc="Loading", postfix=f"batch 0/{total_batches}") as pbar:
+                for idx, batch in enumerate(chunked(data, chunk_size)):
+                    tp.insert_many(batch).execute()
+                    pbar.set_postfix_str(f"batch {idx + 1}/{total_batches}")
+                    pbar.update()
+            logger.info("Load completed")
+
+
+if __name__ == "__main__":
+    DbLoader().load_data()

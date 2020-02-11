@@ -1,0 +1,4 @@
+peewee==3.13.1
+psycopg2-binary==2.8.4
+PyYAML==5.3
+tqdm==4.42.1

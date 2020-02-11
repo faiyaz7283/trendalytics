@@ -1,0 +1,32 @@
+version: '3'
+
+networks:
+  db:
+
+services:
+  db:
+    image: postgres:10.11-alpine
+    restart: always
+    ports:
+      - 5432:5432 
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: trendpulse
+    volumes:
+      - ./sql/trendpulse_summary_tsa_v2.sql:/docker-entrypoint-initdb.d/trendpulse_summary_tsa_v2.sql
+      - ./data/pgdata:/var/lib/postgresql/data
+    networks:
+      - db
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["tail", "-f", "/dev/null"]
+    volumes:
+      - .:/take-home
+    depends_on:
+      - db
+    networks:
+      - db
