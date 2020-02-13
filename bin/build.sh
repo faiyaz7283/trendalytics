@@ -19,5 +19,5 @@ elif [ "${1:-}" = "start" ] || [ "${3:-}" = "start" ]; then
     sleep ${SEC}
 fi
 
-PY_CMD="python scripts/fix_tp_tsa_search_volume.py --limit=${LIMIT:-}"
+PY_CMD="python scripts/trendpulse.py --limit=${LIMIT:-}"
 docker-compose -f ${DC_FILE} exec -e COLUMNS="`tput cols`" -e LINES="`tput lines`" worker bash -l -c "${PY_CMD}"

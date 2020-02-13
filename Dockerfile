@@ -1,6 +1,6 @@
 FROM python:3.6-slim-stretch
-RUN mkdir /take-home
-WORKDIR /take-home
-COPY requirements.txt /take-home/
+RUN mkdir /trendpulse
+WORKDIR /trendpulse
+COPY requirements.txt /trendpulse/
 RUN pip install -r requirements.txt
-COPY . /take-home/
+COPY . /trendpulse/

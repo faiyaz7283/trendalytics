@@ -28,20 +28,13 @@ class DbLoader:
         """
         Extract all the data from CSV file.
         """
-        data = []
-        logger.info(f"Extract start...")
-
-        with open(self.csv_file) as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter="\t")
+        with open(self.csv_file) as cf:
+            csv_reader = csv.reader(cf, delimiter="\t")
             columns = ["search", "search_volume", "weeks", "date_of_month", "period"]
-            with tqdm(desc="Extracting") as pbar:
-                for row in csv_reader:
-                    row = [r.replace("\\N", "") for r in row]
-                    extracted_row = {col:row[key] for key, col in enumerate(columns)}
-                    data.append(extracted_row)
-                    pbar.update()
-        logger.info("Extract completed")
-        return data
+            for row in csv_reader:
+                row = [r.replace("\\N", "") for r in row]
+                extracted_row = {col:row[key] for key, col in enumerate(columns)}
+                yield extracted_row
 
     def load_data(self):
         """
@@ -50,17 +43,21 @@ class DbLoader:
         if len(tp):
             logger.info("Data already exist")
         else:
+            with open(self.csv_file) as cf:
+                total = sum(1 for row in csv.reader(cf, delimiter="\t"))
             data = self._extract_data()
-            total = len(data)
             chunk_size = 100000
             total_batches = ceil(total / chunk_size)
             logger.info("Load start...")
-            logger.info(f"Inserting rows into {tp._meta.table_name}")
-            with database.atomic(), tqdm(desc="Loading", postfix=f"batch 0/{total_batches}") as pbar:
+            with database.atomic(), \
+                     tqdm(total=total,
+                          desc="Loading",
+                          postfix=f"batch 0/{total_batches}",
+                          ncols=100) as pbar:
                 for idx, batch in enumerate(chunked(data, chunk_size)):
                     tp.insert_many(batch).execute()
                     pbar.set_postfix_str(f"batch {idx + 1}/{total_batches}")
-                    pbar.update()
+                    pbar.update(chunk_size)
             logger.info("Load completed")
 
 
