@@ -46,7 +46,7 @@ class DbLoader:
             with open(self.csv_file) as cf:
                 total = sum(1 for row in csv.reader(cf, delimiter="\t"))
             data = self._extract_data()
-            chunk_size = 100000
+            chunk_size = 10000
             total_batches = ceil(total / chunk_size)
             logger.info("Load start...")
             with database.atomic(), \
@@ -59,7 +59,3 @@ class DbLoader:
                     pbar.set_postfix_str(f"batch {idx + 1}/{total_batches}")
                     pbar.update(chunk_size)
             logger.info("Load completed")
-
-
-if __name__ == "__main__":
-    DbLoader().load_data()

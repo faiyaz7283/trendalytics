@@ -1,6 +1,8 @@
 import argparse
 import logging
 from math import ceil
+import sys
+import time
 
 from peewee import *
 from playhouse.shortcuts import model_to_dict
@@ -154,6 +156,20 @@ class Trendpulse:
             logger.info(f"Upsert completed")
 
 if __name__ == "__main__":
+    print("Waiting for db (ctrl + c to exit) ", end="")
+    while True:
+        try:
+            if database.connect():
+                print(" success")
+                database.close()
+            break;
+        except DatabaseError:
+            print(".", end="", flush=True)
+            try:
+                time.sleep(1)
+            except KeyboardInterrupt:
+                sys.exit()
+
     if (not tp.table_exists()) or (not len(tp)):
         DbLoader().load_data()
 
